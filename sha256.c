@@ -1,6 +1,6 @@
 /*********************************************************************
 * Filename:   sha256.c
-* Author:     
+* Author:
 * Copyright:
 * Disclaimer: This code is presented "as is" without any guarantees.
 *
@@ -48,7 +48,7 @@ static const uint32_t k[NUM_ROUNDS] = {
 };
 
 static const uint32_t init_digest[SHA256_DIGEST_SIZE] = {
-	0x6a09e667, 0xbb67ae85, 0x3c6ef372, 0xa54ff53a, 
+	0x6a09e667, 0xbb67ae85, 0x3c6ef372, 0xa54ff53a,
   0x510e527f, 0x9b05688c, 0x1f83d9ab, 0x5be0cd19
 };
 
@@ -60,9 +60,9 @@ void sha256_transform(sha256_state *state)
   // Improve the efficiency of this code.
   //  1. Reduce memory usage by re-cycling w values
   //  2. Find a way to reduce copying (lines 83-90)
-  //  
+  //
   //  Consider re-ordering some code
-  // 
+  //
 	uint32_t a, b, c, d, e, f, g, h, t1, t2, w[NUM_ROUNDS];
   uint8_t  i;
 
@@ -120,7 +120,7 @@ void sha256_update(sha256_state *state, const uint8_t data[], int len)
 
 	for (i = 0; i < len; ++i) {
 		// Add data[i] to the buffer
-    
+		//with data[] being uint8_t and buffer[] being uint32_t, do we need to OR the values together...?
 		state->buffer_bytes_used++;
 		if (state->buffer_bytes_used == BUFFER_FULL) {
 			sha256_transform(state);
@@ -131,9 +131,12 @@ void sha256_update(sha256_state *state, const uint8_t data[], int len)
 }
 
 void sha256_final(sha256_state *state, uint8_t hash[])
-{	
-	// Pad the buffer.
-  // Transform
-  // If latest buffer could not fit state->bit_len, build final buffer and transform
+{
+	//if state->buffer_bytes_used != 0, then padding needed
+		//final bit_len += buffer_bytes_used * 4
+		//append a single '1' bit
+		//check if state->bit_len % 512 > 64 (the remaining space must leave room for bit_len)
+		//if yes, add K number of '0's, K = (state->bit_len % 512) - 64
+		//if no, fill out current buffer w/ 0s, transform, then fill out new buffer and add bit_len at end and transform that
 	// Copy state->digest to hash
 }
