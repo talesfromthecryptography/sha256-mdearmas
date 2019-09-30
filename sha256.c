@@ -149,7 +149,7 @@ void sha256_final(sha256_state *state, uint32_t hash[])
 {
 	if(state->buffer_bytes_used != 0) //padding is needed
 	{
-		state->bit_len += (state->buffer_bytes_used*4); //calculates final bit length of buffer
+		state->bit_len += (state->buffer_bytes_used*8); //calculates final bit length of buffer
 		int buffer_index = (state->buffer_bytes_used / 4);
 
 		//appending a single '1' bit
