@@ -12,8 +12,10 @@
 *********************************************************************/
 
 /*************************** HEADER FILES ***************************/
+#include <stdint.h>
 #include <stdlib.h>
 #include <memory.h>
+#include <stdio.h>
 #include "sha256.h"
 
 /****************************** MACROS ******************************/
@@ -110,6 +112,8 @@ void sha256_init(sha256_state *state)
 	state->buffer_bytes_used = 0;
 	state->bit_len = 0;
 
+	memset(state->buffer, 0, sizeof(uint32_t)*SHA256_BUFFER_SIZE); //zeros everything in buffer
+
   for (i=0; i<SHA256_DIGEST_SIZE; i++)
   	state->digest[i] = init_digest[i];
 }
@@ -117,10 +121,20 @@ void sha256_init(sha256_state *state)
 void sha256_update(sha256_state *state, const uint8_t data[], int len)
 {
 	int i;
+	int buffer_index = 0;
 
 	for (i = 0; i < len; ++i) {
-		// Add data[i] to the buffer
-		//with data[] being uint8_t and buffer[] being uint32_t, do we need to OR the values together...?
+		if(state->buffer_bytes_used % 4 == 0)
+			state->buffer[buffer_index] |= (data[i] << 24);
+		else if(state->buffer_bytes_used % 4 == 1)
+			state->buffer[buffer_index] |= (data[i] << 16);
+		else if(state->buffer_bytes_used % 4 == 2)
+			state->buffer[buffer_index] |= (data[i] << 8);
+		else {
+			state->buffer[buffer_index] |= data[i];
+			buffer_index++;
+		}
+
 		state->buffer_bytes_used++;
 		if (state->buffer_bytes_used == BUFFER_FULL) {
 			sha256_transform(state);
@@ -139,4 +153,10 @@ void sha256_final(sha256_state *state, uint8_t hash[])
 		//if yes, add K number of '0's, K = (state->bit_len % 512) - 64
 		//if no, fill out current buffer w/ 0s, transform, then fill out new buffer and add bit_len at end and transform that
 	// Copy state->digest to hash
+}
+
+void buffer_print(sha256_state *state) {
+	for(int i = 0; i < ((state->buffer_bytes_used / 4) + 1); i++)
+		printf("%x ", state->buffer[i]);
+	printf("\n");
 }

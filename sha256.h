@@ -1,7 +1,7 @@
 
 /*********************************************************************
 * Filename:   sha256.h
-* Author:     
+* Author:
 * Copyright:
 * Disclaimer: This code is presented "as is" without any guarantees.
 * Details:    Defines the API for the corresponding SHA1 implementation.
@@ -35,5 +35,7 @@ typedef struct {
 void sha256_init(sha256_state *state);
 void sha256_update(sha256_state *state, const uint8_t data[], int len);
 void sha256_final(sha256_state *state,  uint8_t hash[]);
+
+void buffer_print(sha256_state *state);
 
 #endif   // SHA256_H
