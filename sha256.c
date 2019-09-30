@@ -140,23 +140,44 @@ void sha256_update(sha256_state *state, const uint8_t data[], int len)
 			sha256_transform(state);
 			state->bit_len += 512;
 			state->buffer_bytes_used = 0;
+			memset(state->buffer, 0, sizeof(uint32_t)*SHA256_BUFFER_SIZE); //clears contents of buffer
 		}
 	}
 }
 
-void sha256_final(sha256_state *state, uint8_t hash[])
+void sha256_final(sha256_state *state, uint32_t hash[])
 {
-	//if state->buffer_bytes_used != 0, then padding needed
-		//final bit_len += buffer_bytes_used * 4
-		//append a single '1' bit
-		//check if state->bit_len % 512 > 64 (the remaining space must leave room for bit_len)
-		//if yes, add K number of '0's, K = (state->bit_len % 512) - 64
-		//if no, fill out current buffer w/ 0s, transform, then fill out new buffer and add bit_len at end and transform that
-	// Copy state->digest to hash
+	if(state->buffer_bytes_used != 0) //padding is needed
+	{
+		state->bit_len += (state->buffer_bytes_used*4); //calculates final bit length of buffer
+		int buffer_index = (state->buffer_bytes_used / 4);
+
+		//appending a single '1' bit
+		if(state->buffer_bytes_used % 4 == 0)
+			state->buffer[buffer_index] |= (0x1 << 31);
+		else if(state->buffer_bytes_used % 4 == 1)
+			state->buffer[buffer_index] |= (0x1 << 23);
+		else if(state->buffer_bytes_used % 4 == 2)
+			state->buffer[buffer_index] |= (0x1 << 15);
+		else
+			state->buffer[buffer_index] |= (0x1 << 7);
+
+		//if there isn't enough room in the current buffer for a 64-bit length
+		if((state->bit_len + 1) % 512 < 64) {
+			sha256_transform(state);
+			memset(state->buffer, 0, sizeof(uint32_t)*SHA256_BUFFER_SIZE); //clears contents of buffer
+		}
+
+		state->buffer[SHA256_BUFFER_SIZE - 2] = (state->bit_len >> 32); //top half of bit length
+		state->buffer[SHA256_BUFFER_SIZE - 1] = (state->bit_len & 0xffffffff); //bottom half of bit length
+		sha256_transform(state);
+	}
+	for(int i = 0; i < SHA256_DIGEST_SIZE; i++)
+		hash[i] = state->digest[i];
 }
 
 void buffer_print(sha256_state *state) {
-	for(int i = 0; i < ((state->buffer_bytes_used / 4) + 1); i++)
+	for(int i = 0; i < SHA256_BUFFER_SIZE; i++)
 		printf("%x ", state->buffer[i]);
 	printf("\n");
 }

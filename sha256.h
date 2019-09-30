@@ -34,7 +34,7 @@ typedef struct {
 /*********************** FUNCTION DECLARATIONS **********************/
 void sha256_init(sha256_state *state);
 void sha256_update(sha256_state *state, const uint8_t data[], int len);
-void sha256_final(sha256_state *state,  uint8_t hash[]);
+void sha256_final(sha256_state *state,  uint32_t hash[]);
 
 void buffer_print(sha256_state *state);
 
