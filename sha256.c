@@ -73,9 +73,9 @@ void sha256_transform(sha256_state *state)
 	for ( ; i < 64; ++i)
 		w[i] = SIG1(w[i - 2]) + w[i - 7] + SIG0(w[i - 15]) + w[i - 16];
 
-	a = state->digest[0];
-	b = state->digest[1];
-	c = state->digest[2];
+	a = state->digest[0]; //temp[base]
+	b = state->digest[1]; //temp[base+1]
+	c = state->digest[2]; //temp[base+2]
 	d = state->digest[3];
 	e = state->digest[4];
 	f = state->digest[5];
@@ -93,6 +93,7 @@ void sha256_transform(sha256_state *state)
 		c = b;
 		b = a;
 		a = t1 + t2;
+		//base = (base-1) % 8;
 	}
 
 	state->digest[0] += a;
