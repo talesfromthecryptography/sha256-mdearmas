@@ -82,6 +82,7 @@ void sha256_transform(sha256_state *state)
 			end = (end+1) % 16;
 		}
 	}
+	
 	state->digest[0] += a;
 	state->digest[1] += b;
 	state->digest[2] += c;
