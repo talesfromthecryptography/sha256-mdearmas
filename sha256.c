@@ -119,7 +119,7 @@ void sha256_transform2(sha256_state *state) //the more efficient version, bugged
 		t2 = EP0(temp[base]) + MAJ(temp[base],temp[(base + 1) % 8],temp[(base + 2) % 8]);
 		t3 = temp[(base + 3) % 8] + t1;
 		base = (base-1) % 8;
-		if(base == 255)
+		if(base == 255) //because mod is broken
 			base = 7;
 		temp[(base + 4) % 8] = t3;
 		temp[base] = t1 + t2;
