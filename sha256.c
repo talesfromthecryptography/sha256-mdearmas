@@ -56,33 +56,39 @@ static const uint32_t init_digest[SHA256_DIGEST_SIZE] = {
 
 /*********************** Implementations ***********************/
 
-void sha256_transform(sha256_state *state)
+void sha256_transform(sha256_state *state) //original version
 {
-	uint32_t a, b, c, d, e, f, g, h, t1, t2, placeholder, w[16], temp[8];
-  uint8_t  i, j;
+	uint32_t a, b, c, d, e, f, g, h, t1, t2, w[NUM_ROUNDS];
+  uint8_t  i;
 
 	for (i = 0; i < 16; ++i)
 		w[i] = state->buffer[i];
+	for ( ; i < 64; ++i)
+		w[i] = SIG1(w[i - 2]) + w[i - 7] + SIG0(w[i - 15]) + w[i - 16];
 
-	for(j = 0; j < 8; j++)
-		temp[i] = state->digest[i];
-
-	uint8_t base = 0; //marks the start of the temp array
-	uint8_t end = 0; //marks current end of w[]
+	a = state->digest[0];
+	b = state->digest[1];
+	c = state->digest[2];
+	d = state->digest[3];
+	e = state->digest[4];
+	f = state->digest[5];
+	g = state->digest[6];
+	h = state->digest[7];
 
 	for (i = 0; i < 64; ++i) {
-		t1 = temp[(base + 7) % 8] + EP1(temp[(base + 4) % 8]) + CH(temp[(base + 4) % 8],temp[(base + 5) % 8],temp[(base + 6) % 8]) + k[i] + w[i % 16];
-		t2 = EP0(temp[base]) + MAJ(temp[base],temp[(base + 1) % 8],temp[(base + 2) % 8]);
-		temp[(base + 4) % 8] = temp[(base + 3) % 8] + t1;
-		temp[base] = t1 + t2;
-		base = (base-1) % 8;
-		if(i >= 16) {
-			placeholder = w[end];
-			w[end] = SIG1(w[(end-2)%16]) + w[(end-7)%16] + SIG0(w[(end-15)%16]) + placeholder;
-			end = (end+1) % 16;
-		}
+		t1 = h + EP1(e) + CH(e,f,g) + k[i] + w[i];
+		//printf("%x ", h);
+		t2 = EP0(a) + MAJ(a,b,c);
+		h = g;
+		g = f;
+		f = e;
+		e = d + t1;
+		d = c;
+		c = b;
+		b = a;
+		a = t1 + t2;
 	}
-	
+
 	state->digest[0] += a;
 	state->digest[1] += b;
 	state->digest[2] += c;
@@ -91,6 +97,46 @@ void sha256_transform(sha256_state *state)
 	state->digest[5] += f;
 	state->digest[6] += g;
 	state->digest[7] += h;
+}
+
+void sha256_transform2(sha256_state *state) //the more efficient version, bugged
+{
+	uint32_t t1, t2, placeholder, w[16], temp[8];
+  uint8_t  i, j;
+
+	for (i = 0; i < 16; ++i)
+		w[i] = state->buffer[i];
+
+	for(j = 0; j < 8; ++j)
+		temp[j] = state->digest[j];
+
+	uint8_t base = 0; //marks the start of the temp array
+	uint8_t end = 0; //marks current end of w[]
+
+	for (i = 0; i < 64; ++i) {
+		t1 = temp[(base + 7) % 8] + EP1(temp[(base + 4) % 8]) + CH(temp[(base + 4) % 8],temp[(base + 5) % 8],temp[(base + 6) % 8]) + k[i] + w[i%16];
+		//printf("%x ", temp[(base + 7) % 8]);
+		t2 = EP0(temp[base]) + MAJ(temp[base],temp[(base + 1) % 8],temp[(base + 2) % 8]);
+		temp[(base + 4) % 8] = temp[(base + 3) % 8] + t1;
+		temp[base] = t1 + t2;
+		base = (base-1) % 8;
+		if(base == 255)
+			base = 7;
+		if(i >= 16) {
+			placeholder = w[end];
+			w[end] = SIG1(w[(end-2)%16]) + w[(end-7)%16] + SIG0(w[(end-15)%16]) + placeholder;
+			end = (end+1) % 16;
+		}
+	}
+
+	state->digest[0] += temp[base];
+	state->digest[1] += temp[(base + 1) % 8];
+	state->digest[2] += temp[(base + 2) % 8];
+	state->digest[3] += temp[(base + 3) % 8];
+	state->digest[4] += temp[(base + 4) % 8];
+	state->digest[5] += temp[(base + 5) % 8];
+	state->digest[6] += temp[(base + 6) % 8];
+	state->digest[7] += temp[(base + 7) % 8];
 }
 
 void sha256_init(sha256_state *state)
@@ -125,7 +171,7 @@ void sha256_update(sha256_state *state, const uint8_t data[], int len)
 
 		state->buffer_bytes_used++;
 		if (state->buffer_bytes_used == BUFFER_FULL) {
-			sha256_transform(state);
+			sha256_transform2(state);
 			state->bit_len += 512;
 			state->buffer_bytes_used = 0;
 			memset(state->buffer, 0, sizeof(uint32_t)*SHA256_BUFFER_SIZE); //clears contents of buffer
@@ -151,14 +197,14 @@ void sha256_final(sha256_state *state, uint32_t hash[])
 			state->buffer[buffer_index] |= (0x1 << 7);
 
 		//if there isn't enough room in the current buffer for a 64-bit length
-		if((state->bit_len + 1) % 512 < 64) {
-			sha256_transform(state);
+		if((state->bit_len + 1) % 512 > (512 - 64)) {
+			sha256_transform2(state);
 			memset(state->buffer, 0, sizeof(uint32_t)*SHA256_BUFFER_SIZE); //clears contents of buffer
 		}
 
 		state->buffer[SHA256_BUFFER_SIZE - 2] = (state->bit_len >> 32); //top half of bit length
 		state->buffer[SHA256_BUFFER_SIZE - 1] = (state->bit_len & 0xffffffff); //bottom half of bit length
-		sha256_transform(state);
+		sha256_transform2(state);
 	}
 	for(int i = 0; i < SHA256_DIGEST_SIZE; i++)
 		hash[i] = state->digest[i];
