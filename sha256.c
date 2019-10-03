@@ -77,7 +77,6 @@ void sha256_transform(sha256_state *state) //original version
 
 	for (i = 0; i < 64; ++i) {
 		t1 = h + EP1(e) + CH(e,f,g) + k[i] + w[i];
-		//printf("%x ", h);
 		t2 = EP0(a) + MAJ(a,b,c);
 		h = g;
 		g = f;
@@ -87,6 +86,14 @@ void sha256_transform(sha256_state *state) //original version
 		c = b;
 		b = a;
 		a = t1 + t2;
+		printf("%x ", a);
+		printf("%x ", b);
+		printf("%x ", c);
+		printf("%x ", d);
+		printf("%x ", e);
+		printf("%x ", f);
+		printf("%x ", g);
+		printf("%x\n", h);
 	}
 
 	state->digest[0] += a;
@@ -101,11 +108,13 @@ void sha256_transform(sha256_state *state) //original version
 
 void sha256_transform2(sha256_state *state) //the more efficient version, bugged
 {
-	uint32_t t1, t2, placeholder, w[16], temp[8];
+	uint32_t t1, t2, t3, placeholder, w[NUM_ROUNDS], temp[8];
   uint8_t  i, j;
 
 	for (i = 0; i < 16; ++i)
 		w[i] = state->buffer[i];
+	for ( ; i < 64; ++i)
+		w[i] = SIG1(w[i - 2]) + w[i - 7] + SIG0(w[i - 15]) + w[i - 16];
 
 	for(j = 0; j < 8; ++j)
 		temp[j] = state->digest[j];
@@ -114,19 +123,28 @@ void sha256_transform2(sha256_state *state) //the more efficient version, bugged
 	uint8_t end = 0; //marks current end of w[]
 
 	for (i = 0; i < 64; ++i) {
-		t1 = temp[(base + 7) % 8] + EP1(temp[(base + 4) % 8]) + CH(temp[(base + 4) % 8],temp[(base + 5) % 8],temp[(base + 6) % 8]) + k[i] + w[i%16];
-		//printf("%x ", temp[(base + 7) % 8]);
+		t1 = temp[(base + 7) % 8] + EP1(temp[(base + 4) % 8]) + CH(temp[(base + 4) % 8],temp[(base + 5) % 8],temp[(base + 6) % 8]) + k[i] + w[i];
 		t2 = EP0(temp[base]) + MAJ(temp[base],temp[(base + 1) % 8],temp[(base + 2) % 8]);
-		temp[(base + 4) % 8] = temp[(base + 3) % 8] + t1;
-		temp[base] = t1 + t2;
+		t3 = temp[(base + 3) % 8] + t1;
 		base = (base-1) % 8;
 		if(base == 255)
 			base = 7;
-		if(i >= 16) {
+		temp[(base + 4) % 8] = t3;
+		temp[base] = t1 + t2;
+		printf("%x ", temp[base]);
+		printf("%x ", temp[(base + 1) % 8]);
+		printf("%x ", temp[(base + 2) % 8]);
+		printf("%x ", temp[(base + 3) % 8]);
+		printf("%x ", temp[(base + 4) % 8]);
+		printf("%x ", temp[(base + 5) % 8]);
+		printf("%x ", temp[(base + 6) % 8]);
+		printf("%x ", temp[(base + 7) % 8]);
+		printf("\n");
+		/*if(i >= 16) {
 			placeholder = w[end];
 			w[end] = SIG1(w[(end-2)%16]) + w[(end-7)%16] + SIG0(w[(end-15)%16]) + placeholder;
 			end = (end+1) % 16;
-		}
+		}*/
 	}
 
 	state->digest[0] += temp[base];

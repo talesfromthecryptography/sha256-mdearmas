@@ -15,7 +15,7 @@ int main() {
   sha256_init(&s);
   sha256_update(&s, data, 3);
   sha256_final(&s, hash);
-  buffer_print(&s);
+  printf("\n");
 
   for(int i = 0; i < 8; i++)
 		printf("%x ", hash[i]);
