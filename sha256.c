@@ -125,8 +125,8 @@ void sha256_transform2(sha256_state *state) //the more efficient version, bugged
 		temp[base] = t1 + t2;
 		if(i >= 15) {
 			placeholder = w[end];
-			w[end] = SIG1(w[(end-2)%16]) + w[(end-7)%16] + SIG0(w[(end-15)%16]) + placeholder; //mod here is broken, not sure why yet
-			end = (end+1) % 16;
+			w[end] = SIG1(w[(end-2)&0x0f]) + w[(end-7)&0x0f] + SIG0(w[(end-15)&0x0f]) + placeholder; //mod here is broken, not sure why yet
+			end = (end+1)&0x0f;
 		}
 	}
 
