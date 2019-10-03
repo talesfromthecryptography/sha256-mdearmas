@@ -100,7 +100,7 @@ void sha256_transform(sha256_state *state) //original version
 	state->digest[7] += h;
 }
 
-void sha256_transform2(sha256_state *state) //the more efficient version, bugged
+void sha256_transform2(sha256_state *state) //the more efficient version
 {
 	uint32_t t1, t2, t3, placeholder, w[16], temp[8];
   uint8_t  i, j;
@@ -108,6 +108,7 @@ void sha256_transform2(sha256_state *state) //the more efficient version, bugged
 	for (i = 0; i < 16; ++i)
 		w[i] = state->buffer[i];
 
+	//replaces a,b,c,d,e,f,g,h from the previous to conserve space
 	for(j = 0; j < 8; ++j)
 		temp[j] = state->digest[j];
 
@@ -119,13 +120,15 @@ void sha256_transform2(sha256_state *state) //the more efficient version, bugged
 		t2 = EP0(temp[base]) + MAJ(temp[base],temp[(base + 1) % 8],temp[(base + 2) % 8]);
 		t3 = temp[(base + 3) % 8] + t1;
 		base = (base-1) % 8;
-		if(base == 255) //because mod is broken
+		if(base == 255) //to prevent mod from breaking
 			base = 7;
 		temp[(base + 4) % 8] = t3;
 		temp[base] = t1 + t2;
+
+		//loops w[] around to conserve space
 		if(i >= 15) {
 			placeholder = w[end];
-			w[end] = SIG1(w[(end-2)&0x0f]) + w[(end-7)&0x0f] + SIG0(w[(end-15)&0x0f]) + placeholder; //mod here is broken, not sure why yet
+			w[end] = SIG1(w[(end-2)&0x0f]) + w[(end-7)&0x0f] + SIG0(w[(end-15)&0x0f]) + placeholder;
 			end = (end+1)&0x0f;
 		}
 	}
